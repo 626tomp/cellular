@@ -40,11 +40,14 @@ prompt_n_generations:	.asciiz "Enter how many generations: "
 error_n_generations:	.asciiz "Invalid number of generations\n"
 
 # Strings for testing purposes
-testing_world:	.asciiz "World Size: "
-testing_rule:	.asciiz "Rule: "
-testing_gen:	.asciiz "Num Generations: "
-normalised:		.asciiz "	I Normalised the number of generations"
-testing_reverse:.asciiz "Reversed? "
+testing_world:	    .asciiz "World Size: "
+testing_rule:	    .asciiz "Rule: "
+testing_gen:	    .asciiz "Num Generations: "
+normalised:		    .asciiz "	I Normalised the number of generations"
+testing_reverse:    .asciiz "Reversed? "
+testing_gen_func:   .asciiz "Made it to generate function. "
+testing_print_func: .asciiz "Made it to print function. "
+testing_main_func:  .asciiz "Made it back to the main function OK! "
 
 	.text
 
@@ -77,33 +80,32 @@ main:
 #	- $t0 used for min world size
 #	- $t1 used for max world size
 
-	la $a0, prompt_world_size  			# printf("Enter world size: ");
+    la $a0, prompt_world_size           # printf("Enter world size: ");
     li $v0, 4
     syscall
 
-	li $v0, 5           				# scanf("%d", input);
+    li $v0, 5                           # scanf("%d", input);
     syscall
-    move $s0, $v0       				# $s0 = Word Size = x = input
+    move $s0, $v0                       # $s0 = Word Size = x = input
 
-	
-	li $t0, MIN_WORLD_SIZE				# Storing MIN_WORLD_SIZE into temp register $t0
-	li $t1, MAX_WORLD_SIZE				# Storing MAX_WORLD_SIZE into temp register $t1
 
-										# if (world_size < MIN_WORLD_SIZE || world_size > MAX_WORLD_SIZE)
-	blt	$s0, $t0, Invalid_World_Size	# if worldsize( $s0) < MIN_WORLD_SIZE ($t0), goto Invalid_World_Size
-	bgt	$s0, $t1, Invalid_World_Size	# if worldsize( $s0) < MAX_WORLD_SIZE ($t1), goto Invalid_World_Size
+    li $t0, MIN_WORLD_SIZE              # Storing MIN_WORLD_SIZE into temp register $t0
+    li $t1, MAX_WORLD_SIZE              # Storing MAX_WORLD_SIZE into temp register $t1
 
-										# valid world sizes are 1-128 
-	b	Valid_World_size				# else goto Valid_World_size
+                                        # if (world_size < MIN_WORLD_SIZE || world_size > MAX_WORLD_SIZE)
+    blt	$s0, $t0, Invalid_World_Size    # if worldsize( $s0) < MIN_WORLD_SIZE ($t0), goto Invalid_World_Size
+    bgt	$s0, $t1, Invalid_World_Size    # if worldsize( $s0) < MAX_WORLD_SIZE ($t1), goto Invalid_World_Size
+
+                                        # valid world sizes are 1-128 
+    b	Valid_World_size                # else goto Valid_World_size
 
 Invalid_World_Size:
 
-	
-	la $a0, error_world_size			# printf("Invalid world size");
-	li $v0, 4
+    la $a0, error_world_size            # printf("Invalid world size");
+    li $v0, 4
     syscall
 
-	jr $31 								#return
+    jr $31                              #return
 
 Valid_World_size:
 
@@ -113,31 +115,31 @@ Valid_World_size:
 #	- $t0 used for min rule
 #	- $t1 used for max rule
 
-	la $a0, prompt_rule  				# printf("Enter Rule: ");
+    la $a0, prompt_rule  				# printf("Enter Rule: ");
     li $v0, 4
     syscall
 
-	li $v0, 5           				# scanf("%d", input);
+    li $v0, 5           				# scanf("%d", input);
     syscall
     move $s1, $v0       				# $s1 = Rule = x = input
 
-	li $t0, MIN_RULE					# Storing MIN_RULE into temp register $t0
-	li $t1, MAX_RULE					# Storing MAX_RULE into temp register $t1
+    li $t0, MIN_RULE					# Storing MIN_RULE into temp register $t0
+    li $t1, MAX_RULE					# Storing MAX_RULE into temp register $t1
 
-										# if (rule < MIN_RULE || rule > MAX_RULE)
-	blt	$s1, $t0, Invalid_Rule_Size		# if rule( $s1) < MIN_RULE ($t0), goto Invalid_Rule_Size
-	bgt	$s1, $t1, Invalid_Rule_Size		# if rule( $s1) < MAX_RULE ($t1), goto Invalid_Rule_Size
+                                        # if (rule < MIN_RULE || rule > MAX_RULE)
+    blt	$s1, $t0, Invalid_Rule_Size		# if rule( $s1) < MIN_RULE ($t0), goto Invalid_Rule_Size
+    bgt	$s1, $t1, Invalid_Rule_Size		# if rule( $s1) < MAX_RULE ($t1), goto Invalid_Rule_Size
 
-										# valid rule sizes are 0-255
-	b	Valid_Rule_Size					# else goto Valid_Rule_Size
+                                        # valid rule sizes are 0-255
+    b	Valid_Rule_Size					# else goto Valid_Rule_Size
 
 Invalid_Rule_Size:
 
-	la $a0, error_rule					# printf("Invalid rule size");
-	li $v0, 4
+    la $a0, error_rule					# printf("Invalid rule size");
+    li $v0, 4
     syscall
 
-	jr $31 								# return
+    jr $31 								# return
 
 Valid_Rule_Size:
 
@@ -147,31 +149,31 @@ Valid_Rule_Size:
 #	- $t0 used for min generations
 #	- $t1 used for max generations
 
-	la $a0, prompt_n_generations  		# printf("Enter Rule: ");
+    la $a0, prompt_n_generations  		# printf("Enter Rule: ");
     li $v0, 4
     syscall
 
-	li $v0, 5           				# scanf("%d", input);
+    li $v0, 5           				# scanf("%d", input);
     syscall
     move $s2, $v0       				# $s2 = Generation = x = input
 
-	li $t0, MIN_GENERATIONS				# Storing MIN_GENERATIONS into temp register $t0
-	li $t1, MAX_GENERATIONS				# Storing MAX_GENERATIONS into temp register $t1
+    li $t0, MIN_GENERATIONS				# Storing MIN_GENERATIONS into temp register $t0
+    li $t1, MAX_GENERATIONS				# Storing MAX_GENERATIONS into temp register $t1
 
-										# if (rule < MIN_GENERATIONS || rule > MAX_GENERATIONS)
-	blt	$s2, $t0, Invalid_Rule_Size		# if rule( $s1) < MIN_GENERATIONS ($t0), goto Invalid_Generation_Size
-	bgt	$s2, $t1, Invalid_Rule_Size		# if rule( $s1) < MAX_GENERATIONS ($t1), goto Invalid_Generation_Size
+                                        # if (rule < MIN_GENERATIONS || rule > MAX_GENERATIONS)
+    blt	$s2, $t0, Invalid_Rule_Size		# if rule( $s1) < MIN_GENERATIONS ($t0), goto Invalid_Generation_Size
+    bgt	$s2, $t1, Invalid_Rule_Size		# if rule( $s1) < MAX_GENERATIONS ($t1), goto Invalid_Generation_Size
 
-										# valid rule sizes are -256 to 256
-	b	Valid_Generation_Size					# else goto Valid_Generation_Size
+                                        # valid rule sizes are -256 to 256
+    b	Valid_Generation_Size					# else goto Valid_Generation_Size
 
 Invalid_Generation_Size:
 
-	la $a0, error_n_generations			# printf("InvaInvalid number of generationslid rule size");
-	li $v0, 4
+    la $a0, error_n_generations			# printf("InvaInvalid number of generationslid rule size");
+    li $v0, 4
     syscall
 
-	jr $31 								# return
+    jr $31 								# return
 
 Valid_Generation_Size:
 
@@ -179,85 +181,106 @@ Valid_Generation_Size:
 # line 135 in c implementation
 ## -------------- NORMALISING GENERATION NUMBER --------
 
-	li $s3, 0							# reverse = 0
-	bge $s2, 0, Skip_Gen_Normalisation	# goto Skip_Gen_Normalisation if positive
+    li $s3, 0							# reverse = 0
+    bge $s2, 0, Skip_Gen_Normalisation	# goto Skip_Gen_Normalisation if positive
 
-	la $a0, normalised					# printf("normalised gens: ");
-	li $v0, 4
+    la $a0, normalised					# printf("normalised gens: ");
+    li $v0, 4
     syscall
 
-	li $s3, 1							# reverse = 1
-	sub $s2, $0, $s2					# n_generations = 0 - n_generations;
+    li $s3, 1							# reverse = 1
+    sub $s2, $0, $s2					# n_generations = 0 - n_generations;
 
 
 Skip_Gen_Normalisation:
 
 ## -------------- PRINTING VALUES - FOR TESTING --------
 
+    li   $a0, '\n'     				 	# printf("%c", '\n');
+    li   $v0, 11
+    syscall
+
+    la $a0, testing_world				# printf("World Size: ");
+    li $v0, 4
+    syscall
+
+    move $a0, $s0						# printf("%d", World_Size);
+    li $v0, 1
+    syscall
+
+    li   $a0, '\n'      				# printf("%c", '\n');
+    li   $v0, 11
+    syscall
+
+    la $a0, testing_rule				# printf("Rule: ");
+    li $v0, 4
+    syscall
+
+    move $a0, $s1						# printf("%d", Rule);
+    li $v0, 1
+    syscall
+
+    li   $a0, '\n'      				# printf("%c", '\n');
+    li   $v0, 11
+    syscall
+
+    la $a0, testing_gen					# # printf("Num Generations");
+    li $v0, 4
+    syscall
+
+    move $a0, $s2						# printf("%d", Num_Generations);
+    li $v0, 1
+    syscall
+
+    li   $a0, '\n'                      # printf("%c", '\n');
+    li   $v0, 11
+    syscall
+
+    la $a0, testing_reverse             # printf("Num Generations");
+    li $v0, 4
+    syscall
+
+    move $a0, $s3	                    # printf("%d", reverse);
+    li $v0, 1
+    syscall
+
+    li   $a0, '\n'                      # printf("%c", '\n');
+    li   $v0, 11
+    syscall
+
+
+## -------------- CALLING RUN_GENERATION ---------------
+
+    sub  $sp, $sp, 4                    # move stack pointer down to make room
+    sw   $ra, 0($sp)                    # save $ra on $stack
+    
+    jal  run_generation                 # set $ra to following address
+
+## -------------- CALLING PRINT_GENERATION -------------
+    
+    jal  print_generation                 # set $ra to following address
+
+
+## -------------- ENDING MAIN --------------------------
+
+    lw   $ra, 0($sp)                    # recover $ra from $stack
+    add  $sp, $sp, 4                    # move stack pointer back to what it was
+
+    la $a0, testing_main_func			# printf("Made it to print");
+	li $v0, 4
+    syscall
+
 	li   $a0, '\n'     				 	# printf("%c", '\n');
 	li   $v0, 11
 	syscall
 
-	la $a0, testing_world				# printf("World Size: ");
-	li $v0, 4
-    syscall
-
-	move $a0, $s0						# printf("%d", World_Size);
-	li $v0, 1
-    syscall
-	
-	li   $a0, '\n'      				# printf("%c", '\n');
-	li   $v0, 11
-	syscall
-
-	la $a0, testing_rule				# printf("Rule: ");
-	li $v0, 4
-    syscall
-
-	move $a0, $s1						# printf("%d", Rule);
-	li $v0, 1
-    syscall
-
-	li   $a0, '\n'      				# printf("%c", '\n');
-	li   $v0, 11
-	syscall
-
-	la $a0, testing_gen					# # printf("Num Generations");
-	li $v0, 4
-    syscall
-
-	move $a0, $s2						# printf("%d", Num_Generations);
-	li $v0, 1
-    syscall
-
-	li   $a0, '\n'     				 	# printf("%c", '\n');
-	li   $v0, 11
-	syscall
-
-	la $a0, testing_reverse				# printf("Num Generations");
-	li $v0, 4
-    syscall
-
-	move $a0, $s3						# printf("%d", reverse);
-	li $v0, 1
-    syscall
-
-	li   $a0, '\n'     				 	# printf("%c", '\n');
-	li   $v0, 11
-	syscall
-
-
-	# replace the syscall below with
-	#
-	# li	$v0, 0
-	# jr	$ra
+	li	$v0, 0
+	jr	$ra
 	#
 	# if your code for `main' preserves $ra by saving it on the
 	# stack, and restoring it after calling `print_world' and
 	# `run_generation'.  [ there are style marks for this ]
 
-	li	$v0, 10
-	syscall
 
 
 
@@ -280,6 +303,14 @@ run_generation:
 	# REPLACE THIS COMMENT WITH YOUR CODE FOR `run_generation'.
 	#
 
+    la $a0, testing_gen_func            # printf("made it to generate");
+	li $v0, 4
+    syscall
+
+	li   $a0, '\n'                      # printf("%c", '\n');
+	li   $v0, 11
+	syscall
+
 	jr	$ra
 
 
@@ -301,5 +332,13 @@ print_generation:
 	#
 	# REPLACE THIS COMMENT WITH YOUR CODE FOR `print_generation'.
 	#
+
+    la $a0, testing_print_func			# printf("Made it to print");
+	li $v0, 4
+    syscall
+
+	li   $a0, '\n'     				 	# printf("%c", '\n');
+	li   $v0, 11
+	syscall
 
 	jr	$ra
