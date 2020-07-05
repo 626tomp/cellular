@@ -48,6 +48,10 @@ testing_reverse:        .asciiz "Reversed? "
 testing_gen_func:       .asciiz "Made it to generate function. "
 testing_print_func:     .asciiz "Made it to print function. "
 testing_main_func:      .asciiz "Made it back to the main function OK! "
+address_r:              .asciiz " Address at right: "
+address_s:              .asciiz " Address at start: "
+address_c:              .asciiz " Address at centre: "
+address_l:              .asciiz " Address at left: "
 
 	.text
 
@@ -162,8 +166,8 @@ Valid_Rule_Size:
     li $t1, MAX_GENERATIONS				# Storing MAX_GENERATIONS into temp register $t1
 
                                         # if (rule < MIN_GENERATIONS || rule > MAX_GENERATIONS)
-    blt	$s2, $t0, Invalid_Rule_Size		# if rule( $s1) < MIN_GENERATIONS ($t0), goto Invalid_Generation_Size
-    bgt	$s2, $t1, Invalid_Rule_Size		# if rule( $s1) < MAX_GENERATIONS ($t1), goto Invalid_Generation_Size
+    blt	$s2, $t0, Invalid_Generation_Size # if rule( $s1) < MIN_GENERATIONS ($t0), goto Invalid_Generation_Size
+    bgt	$s2, $t1, Invalid_Generation_Size # if rule( $s1) < MAX_GENERATIONS ($t1), goto Invalid_Generation_Size
 
                                         # valid rule sizes are -256 to 256
     b	Valid_Generation_Size					# else goto Valid_Generation_Size
@@ -185,71 +189,15 @@ Valid_Generation_Size:
     li  $s3, 0							# reverse = 0
     bge $s2, 0, Skip_Gen_Normalisation	# goto Skip_Gen_Normalisation if positive
 
-    la  $a0, normalised					# printf("normalised gens: ");
-    li  $v0, 4
-    syscall
-
     li  $s3, 1							# reverse = 1
     sub $s2, $0, $s2					# n_generations = 0 - n_generations;
 
 
 Skip_Gen_Normalisation:
 
-## -------------- PRINTING VALUES - FOR TESTING --------
-
-    li   $a0, '\n'     				 	# printf("%c", '\n');
-    li   $v0, 11
+    li $a0, '\n'
+    li $v0, 11
     syscall
-
-    la $a0, testing_world				# printf("World Size: ");
-    li $v0, 4
-    syscall
-
-    move $a0, $s0						# printf("%d", World_Size);
-    li $v0, 1
-    syscall
-
-    li   $a0, '\n'      				# printf("%c", '\n');
-    li   $v0, 11
-    syscall
-
-    la $a0, testing_rule				# printf("Rule: ");
-    li $v0, 4
-    syscall
-
-    move $a0, $s1						# printf("%d", Rule);
-    li $v0, 1
-    syscall
-
-    li   $a0, '\n'      				# printf("%c", '\n');
-    li   $v0, 11
-    syscall
-
-    la $a0, testing_gen					# # printf("Num Generations");
-    li $v0, 4
-    syscall
-
-    move $a0, $s2						# printf("%d", Num_Generations);
-    li $v0, 1
-    syscall
-
-    li   $a0, '\n'                      # printf("%c", '\n');
-    li   $v0, 11
-    syscall
-
-    la $a0, testing_reverse             # printf("Num Generations");
-    li $v0, 4
-    syscall
-
-    move $a0, $s3	                    # printf("%d", reverse);
-    li $v0, 1
-    syscall
-
-    li   $a0, '\n'                      # printf("%c", '\n');
-    li   $v0, 11
-    syscall
-	syscall
-
 
 ## -------------- CALLING RUN_GENERATION ---------------
 # registers used:
@@ -272,13 +220,13 @@ Skip_Gen_Normalisation:
                                         # of the array to be 1
                                         
 
-    li $s4, 1                          # int i = 1
+    li $s4, 1                           # int i = 1
 
 main_loop_generate:
 
     bgt $s4, $s2, main_loop_generate_end    # if ( i >= num_generations); goto end;
     
-    move $a1, $s4                       # passing which generation into the function
+    move $a0, $s4                       # passing which generation into the function
 
     jal  run_generation                 # set $ra to following address
                                         # ie calls the function 'run_generation'
@@ -300,7 +248,7 @@ main_loop_generate_end:
     li  $s4, 0                          # sets the counter variable to 0 (i = 0)
     b main_loop_print_forwards
 reverse:
-    move $s4, $s0                       # sets the counter variable to world_size (i = world_size)
+    move $s4, $s2                       # sets the counter variable to num_generations (i = num_generations)
     b	main_loop_print_backwards
     
 main_loop_print_forwards:
@@ -331,14 +279,6 @@ main_loop_print_end:
 
     lw   $ra, 0($sp)                    # recover $ra from $stack
     add  $sp, $sp, 4                    # move stack pointer back to what it was
-
-    la $a0, testing_main_func			# printf("Made it to print");
-	li $v0, 4
-    syscall
-
-	li   $a0, '\n'     				 	# printf("%c", '\n');
-	li   $v0, 11
-	syscall
 
 	li	$v0, 0
 	jr	$ra
@@ -378,17 +318,22 @@ run_generation:
 #	- $t4 stores the variable right
 #	- $t5 stores the variable bit
 
-    la $a0, testing_gen_func            # printf("made it to generate");
-	li $v0, 4
-    syscall
-
-	li   $a0, '\n'                      # printf("%c", '\n');
-	li   $v0, 11
-	syscall
-
     move $t0, $a0                       # saving the generation number
 
     la   $t1, cells                     # stores the address for the array in t3
+
+    # la $a0, address_s                     # printf("Num Generations");
+    # li $v0, 4
+    # syscall
+# 
+    # move $a0, $t1	                    # printf("%d", reverse);
+    # li $v0, 1
+    # syscall
+# 
+    # li   $a0, '\n'                      # printf("%c", '\n');
+    # li   $v0, 11
+    # syscall
+
     mul  $t2, $s0, 4                    # figures out how big each generation is
     mul $t3, $t2, $t0                   # figures out how many generations we need to go into memory
     add $t1, $t1, $t3                   # finds the address of the first value in the current generation
@@ -404,38 +349,50 @@ run_generation_loop:
 	# syscall
 ## ---------- CALCULATING LEFT, CENTRE, RIGHT ----------
 
-    beqz $s5, left_side                 # if x = 0, goto left_side: (ie skip a bit)
+    beqz $s5, skip_left_side                 # if x = 0, goto left_side: (ie skip a bit)
 
 
                                         # left = cells[which_generation - 1][x - 1];
     mul $t3, $s0, 4                     # size of one generation in the array
     sub $t2, $t1, $t3                   # array[i-1]
+    sub $t2, $t2, 4                     # array[i-1][x-1]
 
-    lw $t3, ($t2)                      # left = array[i-1][x-1]
-
+    lw $t6, ($t2)                       # left = array[i-1][x-1]
+    b right_side
     
-left_side:
+skip_left_side:
+
+    li $t6, 0
+
+right_side:
 
     sub $t4, $s0, 1                     # if (x >= wordl_size - 1)
-    bge $s5, $t4, right_side             # goto right_side: (ie skip a bit)
+    bge $s5, $t4, skip_right_side             # goto right_side: (ie skip a bit)
 
                                         # right = cells[which_generation - 1][x + 1];
     mul $t3, $s0, 4                     # size of one generation in the array
     sub $t2, $t1, $t3                   # array[i-1]
     add $t2, $t2, 4                     # array[i-1][x+1]
-
+    
     lw $t4, ($t2)                      # right = array[i-1][x+1]
+    b centre
+    
+skip_right_side:
 
-right_side:
+    li $t4, 0
+
+centre:
 
                                         # int centre = cells[which_generation - 1][x];
     mul $t3, $s0, 4                     # size of one generation in the array
     sub $t2, $t1, $t3                   # centre = array[i-1][x]
 
-    lw $t2, ($t2)
+    lw $t2 ($t2)
 
 ## ---------- CALCULATING STATE, BIT AND SET -----------
     
+    move $t3, $t6
+
     sllv $t3, $t3, 2                    # left << 2
     sllv $t2, $t2, 1                    # centre << 1
     sllv $t4, $t4, 0                    # right << 0
@@ -452,6 +409,7 @@ right_side:
     and $s7, $t5, $s1                   # int set = rule & bit;
 
     beqz $s7, generate_cell_dead        # if (set) goto cell alive, else goto cell dead
+
 generate_cell_alive:
 
     li $t8, 1
@@ -472,10 +430,6 @@ end_generate_cell:
     b run_generation_loop               # goto loop start
 
 run_generation_loop_end:
-
-    li   $a0, '\n'      				# printf("%c", '\n');
-    li   $v0, 11
-    syscall
 
 	jr	$ra
 
