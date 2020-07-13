@@ -211,11 +211,10 @@ Skip_Gen_Normalisation:
 
     la  $t2, cells                      # loads the address of the start of the array into $t2                
     div $t4, $s0, 2                     # calculates the index offest of the middle bit. world size / 2
-    mul $t4, $t4, 4                     # calculates how many bits in memeory we need to move
     add $t5, $t2, $t4                   # adds the offset to the memory address of the start
 
     li  $t6, 1
-    sw  $t6, ($t5)                      # sets the memory at t5 to be 1
+    sb  $t6, ($t5)                      # sets the memory at t5 to be 1
                                         # this is setting the middle bit of the first row 
                                         # of the array to be 1
                                         
@@ -334,7 +333,7 @@ run_generation:
     # li   $v0, 11
     # syscall
 
-    mul  $t2, $s0, 4                    # figures out how big each generation is
+    mul  $t2, $s0, 1                    # figures out how big each generation is
     mul $t3, $t2, $t0                   # figures out how many generations we need to go into memory
     add $t1, $t1, $t3                   # finds the address of the first value in the current generation
 
@@ -353,11 +352,11 @@ run_generation_loop:
 
 
                                         # left = cells[which_generation - 1][x - 1];
-    mul $t3, $s0, 4                     # size of one generation in the array
+    mul $t3, $s0, 1                     # size of one generation in the array
     sub $t2, $t1, $t3                   # array[i-1]
-    sub $t2, $t2, 4                     # array[i-1][x-1]
+    sub $t2, $t2, 1                     # array[i-1][x-1]
 
-    lw $t6, ($t2)                       # left = array[i-1][x-1]
+    lb $t6, ($t2)                       # left = array[i-1][x-1]
     b right_side
     
 skip_left_side:
@@ -370,11 +369,11 @@ right_side:
     bge $s5, $t4, skip_right_side             # goto right_side: (ie skip a bit)
 
                                         # right = cells[which_generation - 1][x + 1];
-    mul $t3, $s0, 4                     # size of one generation in the array
+    mul $t3, $s0, 1                     # size of one generation in the array
     sub $t2, $t1, $t3                   # array[i-1]
-    add $t2, $t2, 4                     # array[i-1][x+1]
+    add $t2, $t2, 1                     # array[i-1][x+1]
     
-    lw $t4, ($t2)                      # right = array[i-1][x+1]
+    lb $t4, ($t2)                      # right = array[i-1][x+1]
     b centre
     
 skip_right_side:
@@ -384,10 +383,10 @@ skip_right_side:
 centre:
 
                                         # int centre = cells[which_generation - 1][x];
-    mul $t3, $s0, 4                     # size of one generation in the array
+    mul $t3, $s0, 1                     # size of one generation in the array
     sub $t2, $t1, $t3                   # centre = array[i-1][x]
 
-    lw $t2 ($t2)
+    lb $t2 ($t2)
 
 ## ---------- CALCULATING STATE, BIT AND SET -----------
     
@@ -413,20 +412,20 @@ centre:
 generate_cell_alive:
 
     li $t8, 1
-    sw $t8, ($t1)                       # array[x][i] = 1
+    sb $t8, ($t1)                       # array[x][i] = 1
     b end_generate_cell
 
 generate_cell_dead:
 
     li $t8, 0
-    sw $t8, ($t1)                       # array[x][i] = 0
+    sb $t8, ($t1)                       # array[x][i] = 0
     b end_generate_cell
 
 end_generate_cell:
 
 
     add $s5, $s5, 1                     # i++
-    add $t1, $t1, 4                     # moves onto the next array index
+    add $t1, $t1, 1                     # moves onto the next array index
     b run_generation_loop               # goto loop start
 
 run_generation_loop_end:
@@ -474,7 +473,7 @@ print_generation:
     li  $t2, 0                          # x = 0
 
     la   $t3, cells                     # stores the address for the array in t3
-    mul  $t5, $t0, 4                    # figures out how big each generation is
+    mul  $t5, $t0, 1                    # figures out how big each generation is
     mul $t6, $t5, $t1                   # figures out how many generations we need to go into memory
     add $t4, $t3, $t6                   # finds the address of the first value in the current generation
 
@@ -484,7 +483,7 @@ print_loop:
 
         bge $t2, $t0, print_loop_end    # for (int x = 0; x < world_size; x++)
 
-        lw   $t7, ($t4)                 # loads current array index into $t4
+        lb   $t7, ($t4)                 # loads current array index into $t4
         beqz $t7, print_cell_dead       # if (cells[which_generation][x] == 0) goto print_cell_dead
         b   print_cell_alive            # else goto print_cell_alive
         
@@ -505,7 +504,7 @@ print_cell_dead:
 done_print:
         
         
-        add $t4, $t4, 4                 # increments the array index
+        add $t4, $t4, 1                 # increments the array index
         add $t2, $t2, 1                 # x++
         b   print_loop                  # goto print_loop:
     
