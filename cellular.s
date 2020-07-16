@@ -201,8 +201,8 @@ Skip_Gen_Normalisation:
 
 ## -------------- CALLING RUN_GENERATION ---------------
 # registers used:
-#	- $a0 used for world_size
-#	- $a1 used for which_generation
+#	- $a1 used for world_size
+#	- $a0 used for which_generation
 #   - $a2 used for rule
 #   - $s4 is the counter
 
@@ -226,6 +226,8 @@ main_loop_generate:
     bgt $s4, $s2, main_loop_generate_end    # if ( i >= num_generations); goto end;
     
     move $a0, $s4                       # passing which generation into the function
+    move $a1, $s0                       # passing in world size
+    move $a2, $s1                       # passing in the rule
 
     jal  run_generation                 # set $ra to following address
                                         # ie calls the function 'run_generation'
@@ -294,66 +296,59 @@ main_loop_print_end:
 	# a new generation according to `rule' and store it in `cells'.
 	#
 
-	#
-	# REPLACE THIS COMMENT WITH A LIST OF THE REGISTERS USED IN
-	# `run_generation', AND THE PURPOSES THEY ARE ARE USED FOR
-	#
-	# YOU SHOULD ALSO NOTE WHICH REGISTERS DO NOT HAVE THEIR
-	# ORIGINAL VALUE WHEN `run_generation' FINISHES
-	#
-
 run_generation:
 # registers used:
 #	- Register $s0 contains the World Size	
-#	- Register $s1 contains the Rule	
-#	- Register $s2 contains the Number of Generations
-#   - Register $s5 is used to count through the array
+#	- Register $s1 contains the Rule
+#   - Register $s2 is used to store which generation it is from $a0
+#   - Register $s3 is used to count through the array
+#	- Register $s4 is the address of the start of the array we are up to
 #   - Register $s6 is used to store the variable state
 #   - Register $s7 is used to store the boolean set
-#   - $a0 is used to store which generation it is => $t0
-#	- $t1 is the address of the start of the array we are up to
 #	- $t2 stores the variable centre
 #	- $t3 stores the variable left
 #	- $t4 stores the variable right
 #	- $t5 stores the variable bit
 
-    move $t0, $a0                       # saving the generation number
+        # Registers with different values:
+            #t1-6,8, $a0, $s6,7
+        # Registers with their values restored
+            # $s0-4
 
-    la   $t1, cells                     # stores the address for the array in t3
+    addi $sp, $sp, -20                  # making room to store on the stack
+    sw $s0, 0($sp)                      # storing registers s0-s3 onto the stack
+    sw $s1, 4($sp)
+    sw $s2, 8($sp)
+    sw $s3, 12($sp)
+    sw $s4, 16($sp)
 
-    # la $a0, address_s                     # printf("Num Generations");
-    # li $v0, 4
-    # syscall
-# 
-    # move $a0, $t1	                    # printf("%d", reverse);
-    # li $v0, 1
-    # syscall
-# 
-    # li   $a0, '\n'                      # printf("%c", '\n');
-    # li   $v0, 11
-    # syscall
+    move $s2, $a0                       # saving the generation number
+    move $s0, $a1                       # saving the  world size
+    move $s1, $a2                       # saving the rule
+
+    la   $s4, cells                     # stores the address for the array in t3 11
 
     mul  $t2, $s0, 1                    # figures out how big each generation is
-    mul $t3, $t2, $t0                   # figures out how many generations we need to go into memory
-    add $t1, $t1, $t3                   # finds the address of the first value in the current generation
+    mul $t3, $t2, $s2                   # figures out how many generations we need to go into memory
+    add $s4, $s4, $t3                   # finds the address of the first value in the current generation
 
-    li $s5, 0                           # i = 0;
+    li $s3, 0                           # i = 0;
 
 run_generation_loop: 
 
-    bge $s5, $s0, run_generation_loop_end   # if (i >= world_size) goto end;
+    bge $s3, $s0, run_generation_loop_end   # if (i >= world_size) goto end;
     
     # li   $a0, DEAD_CHAR     				 	
 	# li   $v0, 11
 	# syscall
 ## ---------- CALCULATING LEFT, CENTRE, RIGHT ----------
 
-    beqz $s5, skip_left_side                 # if x = 0, goto left_side: (ie skip a bit)
+    beqz $s3, skip_left_side                 # if x = 0, goto left_side: (ie skip a bit)
 
 
                                         # left = cells[which_generation - 1][x - 1];
     mul $t3, $s0, 1                     # size of one generation in the array
-    sub $t2, $t1, $t3                   # array[i-1]
+    sub $t2, $s4, $t3                   # array[i-1]
     sub $t2, $t2, 1                     # array[i-1][x-1]
 
     lb $t6, ($t2)                       # left = array[i-1][x-1]
@@ -366,11 +361,11 @@ skip_left_side:
 right_side:
 
     sub $t4, $s0, 1                     # if (x >= wordl_size - 1)
-    bge $s5, $t4, skip_right_side             # goto right_side: (ie skip a bit)
+    bge $s3, $t4, skip_right_side             # goto right_side: (ie skip a bit)
 
                                         # right = cells[which_generation - 1][x + 1];
     mul $t3, $s0, 1                     # size of one generation in the array
-    sub $t2, $t1, $t3                   # array[i-1]
+    sub $t2, $s4, $t3                   # array[i-1]
     add $t2, $t2, 1                     # array[i-1][x+1]
     
     lb $t4, ($t2)                      # right = array[i-1][x+1]
@@ -384,7 +379,7 @@ centre:
 
                                         # int centre = cells[which_generation - 1][x];
     mul $t3, $s0, 1                     # size of one generation in the array
-    sub $t2, $t1, $t3                   # centre = array[i-1][x]
+    sub $t2, $s4, $t3                   # centre = array[i-1][x]
 
     lb $t2 ($t2)
 
@@ -412,23 +407,30 @@ centre:
 generate_cell_alive:
 
     li $t8, 1
-    sb $t8, ($t1)                       # array[x][i] = 1
+    sb $t8, ($s4)                       # array[x][i] = 1
     b end_generate_cell
 
 generate_cell_dead:
 
     li $t8, 0
-    sb $t8, ($t1)                       # array[x][i] = 0
+    sb $t8, ($s4)                       # array[x][i] = 0
     b end_generate_cell
 
 end_generate_cell:
 
 
-    add $s5, $s5, 1                     # i++
-    add $t1, $t1, 1                     # moves onto the next array index
+    add $s3, $s3, 1                     # i++
+    add $s4, $s4, 1                     # moves onto the next array index
     b run_generation_loop               # goto loop start
 
 run_generation_loop_end:
+
+    lw  $s0, 0($sp)
+    lw  $s1, 4($sp)
+    lw  $s2, 8($sp)
+    lw  $s3, 12($sp)                    
+    lw  $s4, 16($sp)                    # recover s0-s3 from $stack
+    addi  $sp, $sp, 20                  # move stack pointer back to what it was
 
 	jr	$ra
 
@@ -438,31 +440,34 @@ run_generation_loop_end:
 	# specified generation.
 	#
 
-	#
-	# REPLACE THIS COMMENT WITH A LIST OF THE REGISTERS USED IN
-	# `print_generation', AND THE PURPOSES THEY ARE ARE USED FOR
-	#
-	# YOU SHOULD ALSO NOTE WHICH REGISTERS DO NOT HAVE THEIR
-	# ORIGINAL VALUE WHEN `print_generation' FINISHES
-	#
-
 print_generation:
 # registers used:
-#	- $a0 used for world_size which is moved into $t0
-#	- $a1 used for which_generation which is moved into $t1
-#   - $t2 is used for the loop counter
+#	- $s0 used for world_size which is moved from $a0
+#	- $s1 used for which_generation which is moved into $a1
+#   - $s2 is used for the loop counter
+#   - $s3 holds the value for the current index in the array (ie whether its alive or dead)
 #   - $t3 holds the address for the 2d cells array
-#   - $t4 holds the current index we care about
-#   - $t7 holds the value for the current index in the array (ie whether its alive or dead)
+#   - $s4 holds the current index we care about
 
+        # Registers with different values:
+            #t3,5,6, $a0
+        # Registers with their values restored:
+            # $s0-4
+
+    addi $sp, $sp, -20                  # making room to store on the stack
+    sw $s0, 0($sp)                      # storing registers s0-s4 onto the stack
+    sw $s1, 4($sp)
+    sw $s2, 8($sp)
+    sw $s3, 12($sp)
+    sw $s4, 16($sp)
 
 ## -------------- SETTING UP ADDRESSES TO PRINT---------
 
                                         # saving the function parameters into registers we can use
-    move $t0, $a0                       # saving world size
-    move $t1, $a1                       # saving which generation
+    move $s0, $a0                       # saving world size
+    move $s1, $a1                       # saving which generation
     
-    move  $a0, $t1    				 	# printf("%d", which_generation);
+    move  $a0, $s1    				 	# printf("%d", which_generation);
     li   $v0, 1
     syscall
 
@@ -470,21 +475,21 @@ print_generation:
     li   $v0, 11
     syscall
 
-    li  $t2, 0                          # x = 0
+    li  $s2, 0                          # x = 0
 
     la   $t3, cells                     # stores the address for the array in t3
-    mul  $t5, $t0, 1                    # figures out how big each generation is
-    mul $t6, $t5, $t1                   # figures out how many generations we need to go into memory
-    add $t4, $t3, $t6                   # finds the address of the first value in the current generation
+    mul  $t5, $s0, 1                    # figures out how big each generation is
+    mul $t6, $t5, $s1                   # figures out how many generations we need to go into memory
+    add $s4, $t3, $t6                   # finds the address of the first value in the current generation
 
 ## -------------- LOOPING THROUGH ARRAY-----------------
 
 print_loop:
 
-        bge $t2, $t0, print_loop_end    # for (int x = 0; x < world_size; x++)
+        bge $s2, $s0, print_loop_end    # for (int x = 0; x < world_size; x++)
 
-        lb   $t7, ($t4)                 # loads current array index into $t4
-        beqz $t7, print_cell_dead       # if (cells[which_generation][x] == 0) goto print_cell_dead
+        lb   $s3, ($s4)                 # loads current array index into $s4
+        beqz $s3, print_cell_dead       # if (cells[which_generation][x] == 0) goto print_cell_dead
         b   print_cell_alive            # else goto print_cell_alive
         
 print_cell_alive:
@@ -504,8 +509,8 @@ print_cell_dead:
 done_print:
         
         
-        add $t4, $t4, 1                 # increments the array index
-        add $t2, $t2, 1                 # x++
+        add $s4, $s4, 1                 # increments the array index
+        add $s2, $s2, 1                 # x++
         b   print_loop                  # goto print_loop:
     
 print_loop_end:
@@ -513,5 +518,12 @@ print_loop_end:
     li   $a0, '\n'     				 	# putchar('\n');
     li   $v0, 11
     syscall
+
+    lw  $s0, 0($sp)
+    lw  $s1, 4($sp)
+    lw  $s2, 8($sp)
+    lw  $s3, 12($sp)                     
+    lw  $s4, 16($sp)                    # recover s0-s3 from $stack
+    addi  $sp, $sp, 20                  # move stack pointer back to what it was
 
 	jr	$ra
